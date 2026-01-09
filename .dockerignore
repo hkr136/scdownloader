@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+
+# Logs
+*.log
+
+# Downloads
+downloads/
+temp/
+
+# Tests
+tests/
+pytest.ini
+.pytest_cache/
+.coverage
+
+# Documentation
+docs/
+README.md
+QUICKSTART.md
+rules
+CHANGELOG.md
+LICENSE
+
+# Other
+tmp_*
+.DS_Store

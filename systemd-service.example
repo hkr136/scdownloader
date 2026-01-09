@@ -1,0 +1,29 @@
+# Systemd service file for SoundCloud Telegram Bot
+# 
+# Installation:
+# 1. Copy this file: sudo cp systemd-service.example /etc/systemd/system/soundcloud-bot.service
+# 2. Edit the file and update paths: sudo nano /etc/systemd/system/soundcloud-bot.service
+# 3. Reload systemd: sudo systemctl daemon-reload
+# 4. Enable service: sudo systemctl enable soundcloud-bot
+# 5. Start service: sudo systemctl start soundcloud-bot
+# 6. Check status: sudo systemctl status soundcloud-bot
+
+[Unit]
+Description=SoundCloud Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/path/to/soundcloud-downloader
+Environment="PATH=/path/to/soundcloud-downloader/venv/bin"
+ExecStart=/path/to/soundcloud-downloader/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/path/to/soundcloud-downloader/logs/bot.log
+StandardError=append:/path/to/soundcloud-downloader/logs/bot-error.log
+
+[Install]
+WantedBy=multi-user.target
