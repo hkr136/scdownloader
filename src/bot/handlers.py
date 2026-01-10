@@ -24,6 +24,37 @@ from ..utils.logger import setup_logger
 logger = setup_logger()
 
 
+# Caption footer added to every sent track
+CAPTION_FOOTER = "@scdownlbot - download music from soundcloud"
+
+
+def build_track_caption(artist: str, title: str, index: int | None = None, total: int | None = None) -> str:
+    # Build Telegram caption for an audio/document message.
+    # Ensures a consistent footer and respects Telegram caption length limits.
+    artist = artist or 'Unknown Artist'
+    title = title or 'Unknown Title'
+
+    if index is not None and total is not None:
+        head = f"🎵 {index}/{total}: {artist} - {title}"
+    else:
+        head = f"🎵 {artist} - {title}"
+
+    caption = head + "\n\n" + CAPTION_FOOTER
+
+    # Telegram caption limit is 1024 chars (safe for audio/document)
+    if len(caption) > 1024:
+        # Preserve footer and trim the head
+        max_head = 1024 - (len(CAPTION_FOOTER) + 2)  # 2 newlines
+        if max_head <= 1:
+            return CAPTION_FOOTER[:1024]
+        head_trunc = head[: max_head - 1] + "…"
+        caption = head_trunc + "\n\n" + CAPTION_FOOTER
+        caption = caption[:1024]
+
+    return caption
+
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command."""
     welcome_message = """
@@ -227,7 +258,7 @@ async def handle_track(
                 title=track_info['title'],
                 performer=track_info['artist'],
                 duration=int(track_info['duration'] / 1000),
-                caption=f"🎵 {track_info['artist']} - {track_info['title']}",
+                caption=build_track_caption(track_info.get('artist'), track_info.get('title')),
 
                 thumbnail=thumb_file,
                 read_timeout=60,
@@ -261,7 +292,7 @@ async def handle_track(
                 await update.message.reply_document(
                     document=doc_file,
                     filename=f"{track_info['artist']} - {track_info['title']}.mp3",
-                    caption=f"🎵 {track_info['artist']} - {track_info['title']}",
+                    caption=build_track_caption(track_info.get('artist'), track_info.get('title')),
 
                     thumbnail=thumb_file,
                     read_timeout=60,
@@ -400,7 +431,7 @@ async def handle_playlist(
                     title=title,
                     performer=artist,
                     duration=int(track_info['duration'] / 1000) if track_info.get('duration') else None,
-                    caption=f"🎵 {idx}/{total_tracks}: {artist} - {title}",
+                    caption=build_track_caption(artist, title, idx, total_tracks),
 
                     thumbnail=thumb_file,
                     read_timeout=60,
