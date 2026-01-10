@@ -26,7 +26,29 @@ class Settings:
         self.bot_token: str = os.getenv('TELEGRAM_BOT_TOKEN', '')
         
         # SoundCloud API
-        self.soundcloud_client_id: str = os.getenv('SOUNDCLOUD_CLIENT_ID', '')
+        # Support both single ID (backward compatible) and multiple IDs
+        client_ids_str = os.getenv('SOUNDCLOUD_CLIENT_IDS', '')
+        single_id = os.getenv('SOUNDCLOUD_CLIENT_ID', '')
+        
+        if client_ids_str:
+            # Multiple IDs provided (new way)
+            self.soundcloud_client_ids: List[str] = [
+                cid.strip() for cid in client_ids_str.split(',') if cid.strip()
+            ]
+        elif single_id:
+            # Single ID provided (backward compatible)
+            self.soundcloud_client_ids: List[str] = [single_id]
+        else:
+            # No IDs provided
+            self.soundcloud_client_ids: List[str] = []
+        
+        # Client ID rotation settings
+        self.client_id_rotation_strategy: str = os.getenv(
+            'CLIENT_ID_ROTATION_STRATEGY', 'failover'
+        )
+        self.client_id_cooldown_seconds: int = int(
+            os.getenv('CLIENT_ID_COOLDOWN_SECONDS', '300')
+        )
         
         # Download settings
         self.download_directory: Path = Path(
@@ -72,8 +94,11 @@ class Settings:
         if not self.bot_token:
             errors.append("TELEGRAM_BOT_TOKEN is not set")
         
-        if not self.soundcloud_client_id:
-            errors.append("SOUNDCLOUD_CLIENT_ID is not set")
+        if not self.soundcloud_client_ids:
+            errors.append(
+                "No SoundCloud client IDs configured. "
+                "Set SOUNDCLOUD_CLIENT_IDS (comma-separated) or SOUNDCLOUD_CLIENT_ID"
+            )
         
         if self.max_file_size_mb < 1:
             errors.append("MAX_FILE_SIZE_MB must be at least 1")
@@ -87,6 +112,15 @@ class Settings:
         valid_log_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
         if self.log_level.upper() not in valid_log_levels:
             errors.append(f"LOG_LEVEL must be one of {valid_log_levels}")
+        
+        valid_strategies = ['failover', 'round-robin']
+        if self.client_id_rotation_strategy not in valid_strategies:
+            errors.append(
+                f"CLIENT_ID_ROTATION_STRATEGY must be one of {valid_strategies}"
+            )
+        
+        if self.client_id_cooldown_seconds < 0:
+            errors.append("CLIENT_ID_COOLDOWN_SECONDS must be non-negative")
         
         return (len(errors) == 0, errors)
     

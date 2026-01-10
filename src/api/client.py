@@ -3,11 +3,12 @@
 import time
 import asyncio
 import aiohttp
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from urllib.parse import urljoin
 
 from ..utils.logger import setup_logger
 from ..utils.validators import validate_url
+from .client_id_manager import ClientIDManager
 
 
 class SoundCloudAPIError(Exception):
@@ -20,20 +21,45 @@ class SoundCloudClient:
     
     API_BASE_URL = "https://api-v2.soundcloud.com"
     
-    def __init__(self, client_id: str, rate_limit: int = 60):
+    def __init__(
+        self, 
+        client_id: Optional[str] = None,
+        client_ids: Optional[List[str]] = None,
+        rate_limit: int = 60,
+        rotation_strategy: str = 'failover',
+        cooldown_seconds: int = 300
+    ):
         """
         Initialize SoundCloud API client.
         
         Args:
-            client_id: SoundCloud API client ID
+            client_id: Single SoundCloud API client ID (deprecated, use client_ids)
+            client_ids: List of SoundCloud API client IDs (recommended)
             rate_limit: Maximum requests per minute
+            rotation_strategy: Strategy for rotating client IDs ('failover' or 'round-robin')
+            cooldown_seconds: Cooldown period for failed client IDs
         """
-        if not client_id:
-            raise ValueError("Client ID is required")
-        
-        self.client_id = client_id
-        self.rate_limit = rate_limit
         self.logger = setup_logger()
+        
+        # Initialize ClientIDManager
+        if client_ids:
+            self.id_manager = ClientIDManager(
+                client_ids=client_ids,
+                strategy=rotation_strategy,
+                cooldown_seconds=cooldown_seconds
+            )
+        elif client_id:
+            # Backward compatibility: single client_id
+            self.id_manager = ClientIDManager(
+                client_ids=[client_id],
+                strategy=rotation_strategy,
+                cooldown_seconds=cooldown_seconds
+            )
+        else:
+            raise ValueError("Either client_id or client_ids must be provided")
+        
+        self.current_client_id: Optional[str] = None
+        self.rate_limit = rate_limit
         
         # Rate limiting
         self._request_times: list[float] = []
@@ -73,13 +99,19 @@ class SoundCloudClient:
             
             self._request_times.append(current_time)
     
-    async def _make_request(self, endpoint: str, params: Optional[Dict] = None) -> Dict[Any, Any]:
+    async def _make_request(
+        self, 
+        endpoint: str, 
+        params: Optional[Dict] = None,
+        retry: bool = True
+    ) -> Dict[Any, Any]:
         """
-        Make an async API request with rate limiting.
+        Make an async API request with rate limiting and automatic client ID rotation.
         
         Args:
             endpoint: API endpoint
             params: Optional query parameters
+            retry: Whether to retry with a new client ID on auth failure
             
         Returns:
             JSON response as dictionary
@@ -92,16 +124,57 @@ class SoundCloudClient:
         if params is None:
             params = {}
         
-        params['client_id'] = self.client_id
+        # Get current client ID if not set
+        if self.current_client_id is None:
+            self.current_client_id = await self.id_manager.get_active_id()
+        
+        params['client_id'] = self.current_client_id
         
         url = urljoin(self.API_BASE_URL, endpoint)
         session = await self._get_session()
         
         try:
-            self.logger.debug(f"Making request to: {url}")
+            self.logger.debug(
+                f"Making request to: {url} with client_id: "
+                f"{self.current_client_id[:8]}..."
+            )
             async with session.get(url, params=params, timeout=30) as response:
                 response.raise_for_status()
-                return await response.json()
+                data = await response.json()
+                
+                # Mark successful request
+                await self.id_manager.mark_success(self.current_client_id)
+                
+                return data
+                
+        except aiohttp.ClientResponseError as e:
+            # Check if it's an authentication error
+            if e.status in (401, 403):
+                self.logger.warning(
+                    f"Authentication failed with client_id "
+                    f"{self.current_client_id[:8]}... (status: {e.status})"
+                )
+                
+                # Mark this client ID as failed
+                await self.id_manager.mark_failed(self.current_client_id, e.status)
+                
+                # Retry with a new client ID if allowed
+                if retry:
+                    self.logger.info("Attempting retry with new client ID...")
+                    self.current_client_id = None  # Force getting new ID
+                    return await self._make_request(endpoint, params, retry=False)
+                else:
+                    self.logger.error("Retry failed, no more client IDs available")
+                    raise SoundCloudAPIError(
+                        f"Authentication failed (status: {e.status}). "
+                        "All client IDs may be invalid."
+                    )
+            else:
+                # Other HTTP errors
+                self.logger.error(f"API request failed with status {e.status}: {e}")
+                raise SoundCloudAPIError(
+                    f"Failed to fetch data from SoundCloud (status: {e.status}): {e}"
+                )
                 
         except aiohttp.ClientError as e:
             self.logger.error(f"API request failed: {e}")

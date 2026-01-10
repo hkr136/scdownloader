@@ -181,7 +181,12 @@ async def handle_track(
         )
     
     # Get stream URL
-    async with SoundCloudClient(settings.soundcloud_client_id, settings.rate_limit) as client:
+    async with SoundCloudClient(
+        client_ids=settings.soundcloud_client_ids,
+        rate_limit=settings.rate_limit,
+        rotation_strategy=settings.client_id_rotation_strategy,
+        cooldown_seconds=settings.client_id_cooldown_seconds
+    ) as client:
         stream_url = await client.get_stream_url(track_info)
         
         if not stream_url:
@@ -361,7 +366,12 @@ async def handle_playlist(
             parse_mode=ParseMode.HTML
         )
     
-    client = SoundCloudClient(settings.soundcloud_client_id, settings.rate_limit)
+    client = SoundCloudClient(
+        client_ids=settings.soundcloud_client_ids,
+        rate_limit=settings.rate_limit,
+        rotation_strategy=settings.client_id_rotation_strategy,
+        cooldown_seconds=settings.client_id_cooldown_seconds
+    )
     downloader = AsyncAudioDownloader(settings.temp_directory, settings.max_file_size_mb)
     
     successful = 0
@@ -504,7 +514,12 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         # Determine content type (track or playlist)
-        async with SoundCloudClient(settings.soundcloud_client_id, settings.rate_limit) as client:
+        async with SoundCloudClient(
+            client_ids=settings.soundcloud_client_ids,
+            rate_limit=settings.rate_limit,
+            rotation_strategy=settings.client_id_rotation_strategy,
+            cooldown_seconds=settings.client_id_cooldown_seconds
+        ) as client:
             data = await client.resolve_url(url)
             
             if not data:
