@@ -196,17 +196,47 @@ class SoundCloudClient:
             tracks = []
             for track_data in data.get('tracks', []):
                 if track_data and track_data.get('kind') == 'track':
+                    # Get full track info if stream_url is missing or data is incomplete
+                    transcodings = track_data.get('media', {}).get('transcodings', [])
+                    
+                    # If no transcodings or missing user data, try to fetch full track data
+                    if (not transcodings or not track_data.get('user')) and track_data.get('id'):
+                        try:
+                            self.logger.debug(f"Fetching full track data for track ID: {track_data.get('id')}")
+                            full_track_data = await self._make_request(f'/tracks/{track_data.get("id")}')
+                            # Use full data if available
+                            if full_track_data:
+                                track_data = full_track_data
+                                transcodings = track_data.get('media', {}).get('transcodings', [])
+                                self.logger.debug(f"Got full track data: {track_data.get('title')} by {track_data.get('user', {}).get('username')}")
+                        except Exception as e:
+                            self.logger.warning(f"Could not fetch full track data: {e}")
+                    
                     track_info = {
                         'id': track_data.get('id'),
                         'title': track_data.get('title'),
-                        'artist': track_data.get('user', {}).get('username'),
+                        'artist': track_data.get('user', {}).get('username') if track_data.get('user') else None,
                         'duration': track_data.get('duration'),
                         'genre': track_data.get('genre'),
                         'artwork_url': track_data.get('artwork_url'),
-                        'stream_url': track_data.get('media', {}).get('transcodings', []),
+                        'stream_url': transcodings,
                         'created_at': track_data.get('created_at'),
                         'permalink_url': track_data.get('permalink_url'),
                     }
+                    
+                    # Log track info
+                    self.logger.info(
+                        f"Track: {track_info['title']} by {track_info['artist']}, "
+                        f"artwork_url: {track_info['artwork_url']}"
+                    )
+                    
+                    # Log if data is still incomplete
+                    if not track_info['title'] or not track_info['artist']:
+                        self.logger.warning(
+                            f"Incomplete track data: title={track_info['title']}, "
+                            f"artist={track_info['artist']}, id={track_info['id']}"
+                        )
+                    
                     tracks.append(track_info)
             
             playlist_info = {

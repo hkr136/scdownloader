@@ -1,8 +1,9 @@
 """Telegram bot command and message handlers."""
 
 import asyncio
+from io import BytesIO
 from typing import Dict
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -167,6 +168,7 @@ async def handle_track(
         settings.temp_directory,
         settings.max_file_size_mb
     )
+    playlist_thumb = None  # (bytes, mime) cached for fallback artwork
     
     # Progress callback
     last_percent = 0
@@ -193,14 +195,19 @@ async def handle_track(
     )
     
     # Download and embed artwork
+    thumb_file = None
     if track_info.get('artwork_url') and status_message:
         await status_message.edit_text(
             info_text + "\n🖼 Добавляю обложку...",
             parse_mode=ParseMode.HTML
         )
-        artwork_data = await downloader.download_artwork(track_info['artwork_url'])
-        if artwork_data:
-            downloader.embed_metadata(file_path, track_info, artwork_data)
+        artwork = await downloader.download_artwork(track_info['artwork_url'])
+        if artwork:
+            artwork_data, artwork_mime = artwork
+            # Create Telegram thumbnail (Telegram often ignores embedded ID3 cover)
+            ext = 'png' if artwork_mime == 'image/png' else 'jpg'
+            thumb_file = InputFile(BytesIO(artwork_data), filename=f'cover.{ext}')
+            downloader.embed_metadata(file_path, track_info, artwork_data, artwork_mime=artwork_mime)
         else:
             downloader.embed_metadata(file_path, track_info)
     else:
@@ -221,6 +228,8 @@ async def handle_track(
                 performer=track_info['artist'],
                 duration=int(track_info['duration'] / 1000),
                 caption=f"🎵 {track_info['artist']} - {track_info['title']}",
+
+                thumbnail=thumb_file,
                 read_timeout=60,
                 write_timeout=60
             )
@@ -253,6 +262,8 @@ async def handle_track(
                     document=doc_file,
                     filename=f"{track_info['artist']} - {track_info['title']}.mp3",
                     caption=f"🎵 {track_info['artist']} - {track_info['title']}",
+
+                    thumbnail=thumb_file,
                     read_timeout=60,
                     write_timeout=60
                 )
@@ -344,31 +355,58 @@ async def handle_playlist(
                 failed += 1
                 continue
             
+            # Ensure artist and title are not None
+            artist = track_info.get('artist') or 'Unknown Artist'
+            title = track_info.get('title') or 'Unknown Title'
+            
+            logger.info(f"Downloading track {idx}/{total_tracks}: {artist} - {title}")
+            
             # Download track
             file_path = await downloader.download_track(
                 stream_url,
-                track_info['artist'],
-                track_info['title']
+                artist,
+                title
             )
             
             # Download and embed artwork
-            if track_info.get('artwork_url'):
-                artwork_data = await downloader.download_artwork(track_info['artwork_url'])
-                if artwork_data:
-                    downloader.embed_metadata(file_path, track_info, artwork_data)
+            thumb_file = None
+            logger.info(f"Embedding metadata for track {idx}: {title}")
+            logger.info(f"Track info artwork_url: {track_info.get('artwork_url')}")
+            artwork_url = track_info.get('artwork_url') or playlist_info.get('artwork_url')
+            
+            if artwork_url:
+                logger.info(f"Downloading artwork from: {artwork_url}")
+                # Cache playlist artwork if used as fallback
+                if not track_info.get('artwork_url') and playlist_thumb is not None:
+                    artwork = playlist_thumb
                 else:
+                    artwork = await downloader.download_artwork(artwork_url)
+                    if artwork and not track_info.get('artwork_url'):
+                        playlist_thumb = artwork
+                if artwork:
+                    artwork_data, artwork_mime = artwork
+                    logger.info(f"Artwork downloaded successfully, size: {len(artwork_data)} bytes, mime={artwork_mime}")
+                    ext = 'png' if artwork_mime == 'image/png' else 'jpg'
+                    thumb_file = InputFile(BytesIO(artwork_data), filename=f'cover.{ext}')
+                    downloader.embed_metadata(file_path, track_info, artwork_data, artwork_mime=artwork_mime)
+                else:
+                    logger.warning(f"Artwork download failed for track {idx}, embedding metadata without artwork")
                     downloader.embed_metadata(file_path, track_info)
             else:
+                logger.warning(f"No artwork URL for track {idx}: {title}")
                 downloader.embed_metadata(file_path, track_info)
             
             # Send file
+            logger.info(f"Sending track {idx} to Telegram: {artist} - {title}")
             with open(file_path, 'rb') as audio:
                 await update.message.reply_audio(
                     audio=audio,
-                    title=track_info['title'],
-                    performer=track_info['artist'],
+                    title=title,
+                    performer=artist,
                     duration=int(track_info['duration'] / 1000) if track_info.get('duration') else None,
-                    caption=f"🎵 {idx}/{total_tracks}: {track_info['artist']} - {track_info['title']}",
+                    caption=f"🎵 {idx}/{total_tracks}: {artist} - {title}",
+
+                    thumbnail=thumb_file,
                     read_timeout=60,
                     write_timeout=60
                 )
@@ -384,7 +422,7 @@ async def handle_playlist(
             failed += 1
             continue
     
-    # Send final message
+    # Send final message and then delete it
     if status_message:
         await status_message.edit_text(
             f"✅ <b>Загрузка завершена!</b>\n\n"
@@ -393,6 +431,16 @@ async def handle_playlist(
             f"❌ <b>Ошибок:</b> {failed}",
             parse_mode=ParseMode.HTML
         )
+        
+        # Wait a moment so user can see the final message
+        await asyncio.sleep(3)
+        
+        # Delete all service messages including final status
+        for msg in messages_to_delete:
+            try:
+                await msg.delete()
+            except Exception as del_error:
+                logger.debug(f"Could not delete message: {del_error}")
     
     await client.close()
 

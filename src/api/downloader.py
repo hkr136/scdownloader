@@ -133,7 +133,7 @@ class AsyncAudioDownloader:
         filename = f"{artist} - {title}"
         return await self.download(stream_url, filename, progress_callback)
     
-    async def download_artwork(self, artwork_url: str) -> Optional[bytes]:
+    async def download_artwork(self, artwork_url: str) -> Optional[tuple[bytes, str]]:
         """
         Download artwork image from URL.
         
@@ -141,7 +141,7 @@ class AsyncAudioDownloader:
             artwork_url: URL to artwork image
             
         Returns:
-            Image data as bytes or None if download fails
+            Tuple of (image bytes, mime) or None if download fails
         """
         if not artwork_url:
             return None
@@ -155,9 +155,19 @@ class AsyncAudioDownloader:
             async with aiohttp.ClientSession() as session:
                 async with session.get(artwork_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
                     response.raise_for_status()
+                    content_type = (response.headers.get('Content-Type') or '').split(';')[0].strip().lower()
+                    if content_type not in ('image/jpeg', 'image/png', 'image/webp'):
+                        # Fallback: infer from URL
+                        if artwork_url.lower().endswith('.png'):
+                            content_type = 'image/png'
+                        elif artwork_url.lower().endswith('.webp'):
+                            content_type = 'image/webp'
+                        else:
+                            content_type = 'image/jpeg'
+                    
                     artwork_data = await response.read()
-                    self.logger.info(f"Downloaded artwork: {len(artwork_data)} bytes")
-                    return artwork_data
+                    self.logger.info(f"Downloaded artwork: {len(artwork_data)} bytes, mime={content_type}")
+                    return artwork_data, content_type
         except Exception as e:
             self.logger.error(f"Failed to download artwork: {e}")
             return None
@@ -166,7 +176,8 @@ class AsyncAudioDownloader:
         self, 
         file_path: Path, 
         track_info: Dict[str, Any], 
-        artwork_data: Optional[bytes] = None
+        artwork_data: Optional[bytes] = None,
+        artwork_mime: str = 'image/jpeg'
     ) -> None:
         """
         Embed metadata and artwork into MP3 file.
@@ -212,11 +223,11 @@ class AsyncAudioDownloader:
             
             # Add artwork
             if artwork_data:
-                self.logger.info(f"Adding artwork to file: {len(artwork_data)} bytes")
+                self.logger.info(f"Adding artwork to file: {len(artwork_data)} bytes, mime={artwork_mime}")
                 audio.tags.add(
                     APIC(
                         encoding=3,
-                        mime='image/jpeg',
+                        mime=artwork_mime,
                         type=3,  # Cover (front)
                         desc='Cover',
                         data=artwork_data
