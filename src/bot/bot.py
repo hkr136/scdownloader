@@ -40,6 +40,12 @@ class SoundCloudBot:
         # Configure concurrent updates
         builder.concurrent_updates(True)
         
+        # Increase timeouts for large file uploads
+        builder.read_timeout(60)
+        builder.write_timeout(60)
+        builder.connect_timeout(30)
+        builder.pool_timeout(30)
+        
         self.application = builder.build()
         
         # Setup handlers
