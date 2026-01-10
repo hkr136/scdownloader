@@ -174,6 +174,62 @@ class SoundCloudClient:
             self.logger.error(f"Failed to get track info: {e}")
             return None
     
+    async def get_playlist_info(self, url: str) -> Optional[Dict[str, Any]]:
+        """
+        Get playlist/set information from URL.
+        
+        Args:
+            url: SoundCloud playlist/set URL
+            
+        Returns:
+            Dictionary with playlist information or None if failed
+        """
+        try:
+            data = await self.resolve_url(url)
+            
+            kind = data.get('kind')
+            if kind not in ['playlist', 'system-playlist']:
+                self.logger.error(f"URL does not point to a playlist: {url} (kind: {kind})")
+                return None
+            
+            # Extract track information
+            tracks = []
+            for track_data in data.get('tracks', []):
+                if track_data and track_data.get('kind') == 'track':
+                    track_info = {
+                        'id': track_data.get('id'),
+                        'title': track_data.get('title'),
+                        'artist': track_data.get('user', {}).get('username'),
+                        'duration': track_data.get('duration'),
+                        'genre': track_data.get('genre'),
+                        'artwork_url': track_data.get('artwork_url'),
+                        'stream_url': track_data.get('media', {}).get('transcodings', []),
+                        'created_at': track_data.get('created_at'),
+                        'permalink_url': track_data.get('permalink_url'),
+                    }
+                    tracks.append(track_info)
+            
+            playlist_info = {
+                'id': data.get('id'),
+                'title': data.get('title'),
+                'user': data.get('user', {}).get('username'),
+                'track_count': data.get('track_count', len(tracks)),
+                'tracks': tracks,
+                'artwork_url': data.get('artwork_url'),
+                'description': data.get('description'),
+                'created_at': data.get('created_at'),
+            }
+            
+            self.logger.info(
+                f"Retrieved playlist: {playlist_info['title']} "
+                f"by {playlist_info['user']} ({len(tracks)} tracks)"
+            )
+            return playlist_info
+            
+        except (SoundCloudAPIError, ValueError) as e:
+            self.logger.error(f"Failed to get playlist info: {e}")
+            return None
+    
     async def get_stream_url(self, track_info: Dict[str, Any]) -> Optional[str]:
         """
         Get the actual stream URL for downloading.
