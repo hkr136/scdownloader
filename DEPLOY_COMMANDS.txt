@@ -1,0 +1,116 @@
+═══════════════════════════════════════════════════════════════════
+   КОМАНДЫ ДЛЯ ДЕПЛОЯ НА СЕРВЕР (копируй и вставляй)
+═══════════════════════════════════════════════════════════════════
+
+1. ПОДКЛЮЧЕНИЕ К СЕРВЕРУ:
+   
+   ssh user@your-server
+
+
+2. ПЕРЕХОД В ДИРЕКТОРИЮ БОТА:
+   
+   cd /path/to/soundcloud-bot
+
+
+3. BACKUP:
+   
+   cp .env .env.backup.$(date +%Y%m%d)
+   docker-compose logs --tail=100 > logs_backup.txt
+
+
+4. ОСТАНОВКА:
+   
+   docker-compose down
+
+
+5. ОБНОВЛЕНИЕ КОДА:
+   
+   git fetch origin
+   git checkout feature/client-id-rotation
+
+
+6. ПРОВЕРКА ЧТО ОБНОВИЛОСЬ:
+   
+   git log --oneline -n 7
+   ls -la src/api/client_id_manager.py
+
+
+7. РЕДАКТИРОВАНИЕ .env:
+   
+   nano .env
+   
+   # Добавьте/измените:
+   # SOUNDCLOUD_CLIENT_IDS=id1,id2,id3
+   # CLIENT_ID_ROTATION_STRATEGY=failover
+   # CLIENT_ID_COOLDOWN_SECONDS=300
+   
+   # Сохраните: Ctrl+O, Enter, Ctrl+X
+
+
+8. ПЕРЕСБОРКА И ЗАПУСК:
+   
+   docker-compose build
+   docker-compose up -d
+
+
+9. ПРОВЕРКА ЛОГОВ:
+   
+   docker-compose logs -f
+   
+   # Ищите:
+   # [INFO] ClientIDManager initialized with X client IDs
+   # [INFO] Bot started successfully!
+   
+   # Для выхода: Ctrl+C
+
+
+10. ПРОВЕРКА РАБОТЫ:
+    
+    # Отправьте боту тестовую ссылку
+    # Проверьте что трек скачивается
+
+
+11. МОНИТОРИНГ (ОПЦИОНАЛЬНО):
+    
+    # Проверка статуса
+    docker-compose ps
+    
+    # Поиск ошибок
+    docker-compose logs | grep ERROR
+    
+    # Последние 50 строк
+    docker-compose logs --tail=50
+
+
+═══════════════════════════════════════════════════════════════════
+   ОТКАТ (ЕСЛИ ЧТО-ТО ПОШЛО НЕ ТАК):
+═══════════════════════════════════════════════════════════════════
+
+   docker-compose down
+   git checkout main
+   cp .env.backup.YYYYMMDD .env
+   docker-compose build
+   docker-compose up -d
+
+
+═══════════════════════════════════════════════════════════════════
+   ПОЛЕЗНЫЕ КОМАНДЫ:
+═══════════════════════════════════════════════════════════════════
+
+   # Проверить текущую ветку
+   git branch
+   
+   # Посмотреть .env без паролей
+   cat .env | grep -v TOKEN | grep -v CLIENT_ID
+   
+   # Логи в реальном времени
+   docker-compose logs -f soundcloud-bot
+   
+   # Рестарт без пересборки
+   docker-compose restart
+   
+   # Остановить всё
+   docker-compose down
+
+
+═══════════════════════════════════════════════════════════════════
