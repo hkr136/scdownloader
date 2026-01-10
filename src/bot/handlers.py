@@ -370,12 +370,9 @@ async def handle_playlist(
             
             # Download and embed artwork
             thumb_file = None
-            logger.info(f"Embedding metadata for track {idx}: {title}")
-            logger.info(f"Track info artwork_url: {track_info.get('artwork_url')}")
             artwork_url = track_info.get('artwork_url') or playlist_info.get('artwork_url')
             
             if artwork_url:
-                logger.info(f"Downloading artwork from: {artwork_url}")
                 # Cache playlist artwork if used as fallback
                 if not track_info.get('artwork_url') and playlist_thumb is not None:
                     artwork = playlist_thumb
@@ -385,7 +382,6 @@ async def handle_playlist(
                         playlist_thumb = artwork
                 if artwork:
                     artwork_data, artwork_mime = artwork
-                    logger.info(f"Artwork downloaded successfully, size: {len(artwork_data)} bytes, mime={artwork_mime}")
                     ext = 'png' if artwork_mime == 'image/png' else 'jpg'
                     thumb_file = InputFile(BytesIO(artwork_data), filename=f'cover.{ext}')
                     downloader.embed_metadata(file_path, track_info, artwork_data, artwork_mime=artwork_mime)

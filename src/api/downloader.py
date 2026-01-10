@@ -149,7 +149,7 @@ class AsyncAudioDownloader:
         # Replace 'large' with 't500x500' for better quality
         artwork_url = artwork_url.replace('-large', '-t500x500')
         
-        self.logger.info(f"Downloading artwork from: {artwork_url}")
+        self.logger.debug(f"Downloading artwork from: {artwork_url}")
         
         try:
             async with aiohttp.ClientSession() as session:
@@ -166,7 +166,7 @@ class AsyncAudioDownloader:
                             content_type = 'image/jpeg'
                     
                     artwork_data = await response.read()
-                    self.logger.info(f"Downloaded artwork: {len(artwork_data)} bytes, mime={content_type}")
+                    self.logger.debug(f"Downloaded artwork: {len(artwork_data)} bytes, mime={content_type}")
                     return artwork_data, content_type
         except Exception as e:
             self.logger.error(f"Failed to download artwork: {e}")
@@ -223,7 +223,7 @@ class AsyncAudioDownloader:
             
             # Add artwork
             if artwork_data:
-                self.logger.info(f"Adding artwork to file: {len(artwork_data)} bytes, mime={artwork_mime}")
+                self.logger.debug(f"Adding artwork to file: {len(artwork_data)} bytes, mime={artwork_mime}")
                 audio.tags.add(
                     APIC(
                         encoding=3,
