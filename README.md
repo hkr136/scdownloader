@@ -52,6 +52,22 @@ docker-compose up -d
 - `/start` — начать работу
 - `/help` — справка
 
+## Architecture
+
+```
+src/
+├── bot/        # Telegram bot + handlers
+├── api/        # SoundCloud API клиент
+├── config/     # Настройки
+└── utils/      # Логгер, валидаторы
+```
+
+## Roadmap
+
+- [ ] Статистика использования
+- [ ] Кэширование треков
+- [ ] Поддержка YouTube/Spotify
+
 ## License
 
 MIT — см. [LICENSE](LICENSE)
