@@ -1,351 +1,61 @@
-# 🎵 SoundCloud Telegram Bot
+<h3 align="center">
+  <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="status">
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="license">
+  <img src="https://img.shields.io/badge/python-3.8%2B-lightgrey?style=flat-square" alt="python">
+</h3>
 
-Telegram бот для скачивания треков с SoundCloud. Простой, быстрый и удобный!
+# SoundCloud Telegram Bot
 
-## ✨ Возможности
+Telegram бот для скачивания треков с SoundCloud.
 
-- 📥 Скачивание треков с SoundCloud по ссылке
-- 📀 Скачивание плейлистов (до 50 треков)
-- 🖼 Автоматическое встраивание обложек в метаданные
-- 🧹 Автоматическое удаление служебных сообщений
-- 🤖 Простой интерфейс через Telegram
-- ⚡ Асинхронная обработка запросов
-- 📊 Отображение информации о треке
-- 📈 Прогресс загрузки в реальном времени
-- 🔒 Ограничение по размеру файла
-- 📝 Подробное логирование
-- 🐳 Docker поддержка
-- 🛡️ Обработка ошибок
+## Features
 
-## 🚀 Быстрый старт
+- Скачивание треков и плейлистов (до 50 треков)
+- Автоматическое встраивание обложек в метаданные
+- Автоматическое удаление служебных сообщений
+- Асинхронная обработка запросов
+- Docker поддержка
 
-### Требования
+## Requirements
 
-- Python 3.8 или выше
-- Telegram Bot Token (от @BotFather)
+- Python 3.8+
+- Telegram Bot Token
 - SoundCloud Client ID
 
-### Установка
-
-#### Способ 1: Простой запуск (Linux/Mac)
+## Installation
 
 ```bash
-# Клонируйте репозиторий
-git clone <repository-url>
-cd soundcloud-downloader
-
-# Создайте .env файл
+git clone https://github.com/hkr136/scdownloader.git
+cd scdownloader
 cp .env.example .env
-nano .env  # Заполните токены
-
-# Запустите бот
+# Заполните токены в .env
 ./run.sh
 ```
 
-#### Способ 2: Ручная установка
+Docker:
 
 ```bash
-# Создайте виртуальное окружение
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Установите зависимости
-pip install -r requirements.txt
-
-# Настройте .env
-cp .env.example .env
-# Отредактируйте .env файл
-
-# Запустите бота
-python main.py
-```
-
-#### Способ 3: Docker
-
-```bash
-# Настройте .env
-cp .env.example .env
-# Отредактируйте .env файл
-
-# Запустите с Docker Compose
 docker-compose up -d
-
-# Просмотр логов
-docker-compose logs -f
 ```
 
-### Получение токенов
-
-#### Telegram Bot Token
-
-1. Найдите [@BotFather](https://t.me/BotFather) в Telegram
-2. Отправьте `/newbot`
-3. Следуйте инструкциям
-4. Скопируйте полученный токен
-
-#### SoundCloud Client ID
-
-1. Откройте [soundcloud.com](https://soundcloud.com)
-2. Откройте DevTools (F12)
-3. Перейдите на вкладку Network
-4. Включите любой трек
-5. Найдите запросы к `api-v2.soundcloud.com`
-6. Скопируйте `client_id` из параметров запроса
-
-## 📖 Использование
-
-### Команды бота
-
-- `/start` - Начать работу с ботом
-- `/help` - Показать справку
-
-### Как скачать трек
-
-1. Найдите трек на SoundCloud
-2. Скопируйте ссылку на трек
-3. Отправьте ссылку боту в Telegram
-4. Дождитесь загрузки
-5. Получите аудио файл с обложкой и метаданными!
-
-### Как скачать плейлист
-
-1. Найдите плейлист на SoundCloud
-2. Скопируйте ссылку на плейлист (обычно содержит `/sets/`)
-3. Отправьте ссылку боту в Telegram
-4. Бот скачает все треки по очереди (до 50 треков)
-5. Каждый трек будет отправлен с обложкой и метаданными!
-
-### Примеры ссылок
-
-```
-# Треки
-https://soundcloud.com/artist/track-name
-https://www.soundcloud.com/artist/track-name
-https://m.soundcloud.com/artist/track-name
-
-# Плейлисты
-https://soundcloud.com/artist/sets/playlist-name
-https://www.soundcloud.com/artist/sets/playlist-name
-```
-
-## ⚙️ Конфигурация
-
-Настройки в `.env` файле:
+## Configuration
 
 | Переменная | Описание | По умолчанию |
-|-----------|----------|--------------|
-| `TELEGRAM_BOT_TOKEN` | Токен Telegram бота | Обязательно |
-| `SOUNDCLOUD_CLIENT_ID` | Client ID SoundCloud API | Обязательно |
-| `DOWNLOAD_DIRECTORY` | Директория для загрузок | `./downloads` |
-| `TEMP_DIRECTORY` | Временная директория | `./temp` |
-| `MAX_FILE_SIZE_MB` | Макс. размер файла (MB) | `50` |
-| `MAX_CONCURRENT_DOWNLOADS` | Макс. одновременных загрузок | `5` |
-| `DOWNLOAD_TIMEOUT` | Таймаут загрузки (сек) | `300` |
-| `LOG_LEVEL` | Уровень логирования | `INFO` |
-| `LOG_FILE` | Файл логов | `bot.log` |
-| `RATE_LIMIT` | Лимит запросов API/мин | `60` |
-| `USER_RATE_LIMIT` | Лимит запросов юзера/мин | `10` |
-| `ADMIN_USER_IDS` | ID администраторов (через запятую) | - |
+|------------|----------|--------------|
+| TELEGRAM_BOT_TOKEN | Токен бота | Обязательно |
+| SOUNDCLOUD_CLIENT_ID | SoundCloud API | Обязательно |
+| MAX_FILE_SIZE_MB | Макс. размер файла | 50 |
+| MAX_CONCURRENT_DOWNLOADS | Одновременные загрузки | 5 |
 
-## 📁 Структура проекта
+## Commands
 
-```
-soundcloud-downloader/
-├── src/                          # Исходный код
-│   ├── bot/                      # Telegram бот
-│   │   ├── __init__.py
-│   │   ├── bot.py               # Основной класс бота
-│   │   └── handlers.py          # Обработчики команд
-│   ├── api/                      # API клиенты
-│   │   ├── __init__.py
-│   │   ├── client.py            # SoundCloud API
-│   │   └── downloader.py        # Асинхронный загрузчик
-│   ├── config/                   # Конфигурация
-│   │   ├── __init__.py
-│   │   └── settings.py
-│   ├── utils/                    # Утилиты
-│   │   ├── __init__.py
-│   │   ├── logger.py
-│   │   └── validators.py
-│   └── __init__.py
-├── main.py                       # Точка входа
-├── requirements.txt              # Зависимости
-├── .env.example                  # Пример конфигурации
-├── Dockerfile                    # Docker образ
-├── docker-compose.yml            # Docker Compose
-├── run.sh                        # Скрипт запуска
-└── README.md                     # Документация
-```
+- `/start` — начать работу
+- `/help` — справка
 
-## 🐳 Docker развертывание
+## License
 
-### Сборка и запуск
+MIT — см. [LICENSE](LICENSE)
 
-```bash
-# Сборка образа
-docker-compose build
+## Author
 
-# Запуск в фоне
-docker-compose up -d
-
-# Просмотр логов
-docker-compose logs -f
-
-# Остановка
-docker-compose down
-```
-
-### Управление
-
-```bash
-# Перезапуск
-docker-compose restart
-
-# Обновление
-git pull
-docker-compose build
-docker-compose up -d
-
-# Очистка
-docker-compose down -v
-```
-
-## 🔧 Systemd сервис
-
-Для автозапуска на Linux:
-
-```bash
-# Скопируйте файл сервиса
-sudo cp systemd-service.example /etc/systemd/system/soundcloud-bot.service
-
-# Отредактируйте пути
-sudo nano /etc/systemd/system/soundcloud-bot.service
-
-# Активируйте сервис
-sudo systemctl daemon-reload
-sudo systemctl enable soundcloud-bot
-sudo systemctl start soundcloud-bot
-
-# Проверка статуса
-sudo systemctl status soundcloud-bot
-
-# Просмотр логов
-journalctl -u soundcloud-bot -f
-```
-
-## 🧪 Разработка
-
-### Установка для разработки
-
-```bash
-# Установите зависимости для разработки
-pip install -r requirements.txt
-
-# Запустите тесты (когда будут добавлены)
-pytest
-
-# Форматирование кода
-black src/
-
-# Линтинг
-flake8 src/
-```
-
-## ⚖️ Юридическая информация
-
-**Важно**: Этот бот предназначен только для образовательных целей и личного использования.
-
-- ✅ Скачивайте только треки, на которые у вас есть права
-- ✅ Уважайте права артистов и авторские права
-- ✅ Следуйте правилам SoundCloud
-- ❌ Не используйте для незаконного распространения
-- ❌ Не обходите ограничения доступа
-
-Пользователи несут полную ответственность за соблюдение применимых законов.
-
-## 🐛 Решение проблем
-
-### Частые проблемы
-
-**Проблема**: "TELEGRAM_BOT_TOKEN is not set"
-- **Решение**: Проверьте `.env` файл и убедитесь, что токен указан
-
-**Проблема**: "Invalid SoundCloud URL"
-- **Решение**: Проверьте, что ссылка правильная и трек доступен публично
-
-**Проблема**: "File too large"
-- **Решение**: Увеличьте `MAX_FILE_SIZE_MB` в `.env` (учитывайте лимиты Telegram: 50MB)
-
-**Проблема**: "Failed to get download URL"
-- **Решение**: Трек может быть недоступен для стриминга или требует авторизации
-
-**Проблема**: Бот не отвечает
-- **Решение**: 
-  - Проверьте логи: `tail -f bot.log`
-  - Убедитесь, что бот запущен: `ps aux | grep main.py`
-  - Проверьте токен бота
-
-### Логи
-
-```bash
-# Просмотр логов (файл)
-tail -f bot.log
-
-# Просмотр логов (Docker)
-docker-compose logs -f
-
-# Просмотр логов (systemd)
-journalctl -u soundcloud-bot -f
-```
-
-## 🎯 Roadmap
-
-Реализованные функции:
-
-- [x] Поддержка плейлистов (до 50 треков)
-- [x] Встраивание обложек в метаданные
-- [x] Автоматическое удаление служебных сообщений
-
-Планируемые функции:
-
-- [ ] Статистика использования
-- [ ] Кэширование треков
-- [ ] Поддержка других платформ (YouTube, Spotify)
-- [ ] Inline режим
-- [ ] База данных для истории
-- [ ] Админ панель
-- [ ] Мультиязычность
-- [ ] Поддержка больших плейлистов (50+ треков)
-
-## 🤝 Вклад в проект
-
-Хотите помочь? Отлично!
-
-1. Сделайте Fork репозитория
-2. Создайте ветку для функции (`git checkout -b feature/amazing`)
-3. Сделайте изменения
-4. Закоммитьте (`git commit -m 'Add amazing feature'`)
-5. Запушьте (`git push origin feature/amazing`)
-6. Откройте Pull Request
-
-## 📝 Лицензия
-
-MIT License - см. файл [LICENSE](LICENSE)
-
-## 👏 Благодарности
-
-- SoundCloud за API
-- Telegram за Bot API
-- Сообщество Python
-- Всем контрибьюторам
-
-## 📞 Контакты
-
-- GitHub Issues: [Сообщить о проблеме](https://github.com/yourusername/soundcloud-downloader/issues)
-- Telegram: @your_username
-
----
-
-**Примечание**: CLI версия бота доступна в ветке `cli-version`
-
-**Дисклеймер**: Это независимый проект, не связанный с SoundCloud или Telegram.
+[hkr136](https://github.com/hkr136)
